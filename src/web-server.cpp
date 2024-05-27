@@ -8,6 +8,7 @@ int status = WL_IDLE_STATUS;     // the WiFi radio's status
 WiFiServer server(80);  // Create a server that listens on port 80
 
 void printMacAddress(byte mac[]);
+String parseRoute(String request); 
 
 
 void setup() {
@@ -62,43 +63,45 @@ void loop() {
       if (client.available()) {
         char c = client.read();
         Serial.write(c);
-        if (c == '\n') {
-          // If the current line is blank, you got two newline characters in a row.
-          // That's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-Type: application/json");
-            client.println("Connection: close");
-            client.println();
+        currentLine += c; 
 
-            // The JSON response:
-            client.println("{\"message\": \"hello world!\"}");
+        // Check if the request header has ended (double newline)
+        if (currentLine.endsWith("\r\n\r\n")) {
+          // Extract the route from the request
+          String route = parseRoute(currentLine);
+          Serial.print("Requested route: ");
+          Serial.println(route);
 
-            // The HTTP response ends with another blank line:
-            client.println();
-            // Break out of the while loop:
-            break;
-          } else if (currentLine.startsWith("GET ")) {
-            // Extract the route from the request
-            String route = currentLine.substring(5, currentLine.indexOf(" ", 5));
-            Serial.print("Requested route: ");
-            Serial.println(route);
-            currentLine = "";
-          } else {  // If you got a newline, then clear currentLine:
-            currentLine = "";
+          client.println("HTTP/1.1 200 OK");
+          client.println("Content-Type: application/json");
+          client.println("Connection: close");
+          client.println();
+          if (route.equals("/hello")) {
+            client.println("{\"message\": \"Hello!\"}");
+          } else if (route.equals("/goodbye")) {
+            client.println("{\"message\": \"Goodbye!\"}");
+          } else {
+            client.println("{\"message\": \"Route not found!\"}");
           }
-        } else if (c != '\r') {  // If you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
+          client.println();
+          client.stop();
+          Serial.println("Client disconnected");
+          break; 
       }
     }
-    // Close the connection:
-    client.stop();
-    Serial.println("Client disconnected");
   }
 }
+
+
+String parseRoute(String request) {
+  // Find the first space after "GET "
+  int start = request.indexOf("GET ") + 4;
+  // Find the next space after "GET "
+  int end = request.indexOf(" ", start);
+  // Extract the substring between the spaces, which should be the route
+  return request.substring(start, end);
+}
+
 
 void printWifiData() {
   // Print your board's IP address:
