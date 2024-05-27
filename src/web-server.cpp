@@ -1,5 +1,9 @@
 #include <WiFiS3.h>
-#include "arduino_secrets.h" 
+#include "arduino_secrets.h"
+#include "Arduino_LED_Matrix.h"
+#include "animations/hi.h"
+#include "animations/bye.h"
+
 
 char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
@@ -10,6 +14,7 @@ WiFiServer server(80);  // Create a server that listens on port 80
 void printMacAddress(byte mac[]);
 String parseRoute(String request); 
 
+ArduinoLEDMatrix matrix;
 
 void setup() {
   // Initialize serial and wait for port to open:
@@ -78,8 +83,14 @@ void loop() {
           client.println();
           if (route.equals("/hello")) {
             client.println("{\"message\": \"Hello!\"}");
+            matrix.loadSequence(hi);
+            matrix.begin();
+            matrix.play(true);
           } else if (route.equals("/goodbye")) {
             client.println("{\"message\": \"Goodbye!\"}");
+            matrix.loadSequence(bye);
+            matrix.begin();
+            matrix.play(true);
           } else {
             client.println("{\"message\": \"Route not found!\"}");
           }
@@ -91,7 +102,7 @@ void loop() {
     }
   }
 }
-
+}
 
 String parseRoute(String request) {
   // Find the first space after "GET "
